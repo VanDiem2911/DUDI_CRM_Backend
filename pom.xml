@@ -15,7 +15,7 @@
     <description>He thong chia data cho nhan vien (DuDi)</description>
 
     <properties>
-        <java.version>25</java.version>
+        <java.version>21</java.version>
     </properties>
 
     <dependencies>
