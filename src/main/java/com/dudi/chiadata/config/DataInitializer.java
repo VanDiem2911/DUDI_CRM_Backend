@@ -27,6 +27,11 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        if (userRepository.findByUsername("admin").isPresent()) {
+            System.out.println(">>> Database already initialized. Skipping DataInitializer.");
+            return;
+        }
+
         // 1. Initializing default admin user if none exists
         if (userRepository.findByUsername("admin").isEmpty()) {
             User admin = new User();
