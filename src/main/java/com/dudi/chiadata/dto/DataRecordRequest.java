@@ -19,6 +19,7 @@ public class DataRecordRequest {
     private String businessType;
     private String googleMapUrl;
     private String status;
+    private String note;
 
     public DataRecordRequest() {
     }
@@ -85,5 +86,13 @@ public class DataRecordRequest {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
     }
 }

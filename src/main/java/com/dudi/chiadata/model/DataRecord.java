@@ -22,6 +22,8 @@ public class DataRecord {
     private Instant createdAt;
     private Instant updatedAt;
 
+    private String note = "";
+
     public DataRecord() {
     }
 
@@ -152,5 +154,13 @@ public class DataRecord {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note != null ? note : "";
     }
 }

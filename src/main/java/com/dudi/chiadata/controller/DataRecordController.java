@@ -123,6 +123,7 @@ public class DataRecordController {
         record.setWebsite(request.getWebsite());
         record.setBusinessType(request.getBusinessType());
         record.setGoogleMapUrl(request.getGoogleMapUrl());
+        record.setNote(request.getNote());
         if (request.getStatus() != null && !request.getStatus().trim().isEmpty()) {
             record.setStatus(request.getStatus());
         }
@@ -145,6 +146,7 @@ public class DataRecordController {
             record.setWebsite(request.getWebsite());
             record.setBusinessType(request.getBusinessType());
             record.setGoogleMapUrl(request.getGoogleMapUrl());
+            record.setNote(request.getNote());
             if (request.getStatus() != null && !request.getStatus().trim().isEmpty()) {
                 record.setStatus(request.getStatus());
             }
@@ -162,6 +164,14 @@ public class DataRecordController {
         }
         dataRecordRepository.deleteById(id);
         return ResponseEntity.ok(new MessageResponse("Xóa data thành công!"));
+    }
+
+    @PostMapping("/data/delete-bulk")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteDataBulk(@RequestBody List<String> ids) {
+        List<DataRecord> records = dataRecordRepository.findAllById(ids);
+        dataRecordRepository.deleteAll(records);
+        return ResponseEntity.ok(new MessageResponse("Đã xóa " + records.size() + " data thành công!"));
     }
 
     // ==========================================
@@ -409,6 +419,7 @@ public class DataRecordController {
             int webIdx = getColumnIndex(headers, "Website", "website", "Trang web");
             int typeIdx = getColumnIndex(headers, "Loại hình", "Loai hinh", "Danh mục", "Danh muc", "Type", "businessType");
             int mapsIdx = getColumnIndex(headers, "Google Maps", "Google Map", "Maps", "googleMapUrl");
+            int noteIdx = getColumnIndex(headers, "Ghi chú", "Ghi chu", "Note", "note");
 
             boolean hasHeader = true;
             if (nameIdx == -1 || phoneIdx == -1 || addrIdx == -1 || areaIdx == -1) {
@@ -421,6 +432,7 @@ public class DataRecordController {
                     webIdx = headers.size() > 4 ? 4 : -1;
                     typeIdx = headers.size() > 5 ? 5 : -1;
                     mapsIdx = headers.size() > 6 ? 6 : -1;
+                    noteIdx = headers.size() > 7 ? 7 : -1;
                 } else {
                     return ResponseEntity.badRequest().body(Map.of("message", "File CSV không khớp các cột bắt buộc (Tên doanh nghiệp, Địa chỉ, Khu vực, Số điện thoại). Hãy tải file mẫu để kiểm tra."));
                 }
@@ -447,7 +459,7 @@ public class DataRecordController {
                 
                 totalRows++;
 
-                int maxIdx = Math.max(Math.max(Math.max(nameIdx, phoneIdx), Math.max(addrIdx, areaIdx)), Math.max(Math.max(webIdx, typeIdx), mapsIdx));
+                int maxIdx = Math.max(Math.max(Math.max(nameIdx, phoneIdx), Math.max(addrIdx, areaIdx)), Math.max(Math.max(webIdx, typeIdx), Math.max(mapsIdx, noteIdx)));
                 if (columns.size() <= maxIdx) {
                     failedCount++;
                     errors.add(Map.of("row", rowNum, "message", "Dòng không đủ số cột dữ liệu"));
@@ -461,6 +473,7 @@ public class DataRecordController {
                 String website = webIdx != -1 ? columns.get(webIdx).trim() : "";
                 String businessType = typeIdx != -1 ? columns.get(typeIdx).trim() : "";
                 String googleMapUrl = mapsIdx != -1 ? columns.get(mapsIdx).trim() : "";
+                String note = noteIdx != -1 && columns.size() > noteIdx ? columns.get(noteIdx).trim() : "";
 
                 if (businessName.isEmpty()) {
                     failedCount++;
@@ -483,6 +496,7 @@ public class DataRecordController {
                     record.setWebsite(website);
                     record.setBusinessType(businessType);
                     record.setGoogleMapUrl(googleMapUrl);
+                    record.setNote(note);
                     record.setStatus("Chưa xử lý");
                     record.setAssignedTo(null);
                     record.setAssignedToName(null);
@@ -571,6 +585,38 @@ public class DataRecordController {
         return ResponseEntity.ok(record);
     }
 
+    @PatchMapping("/data/{id}/note")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public ResponseEntity<?> updateNote(
+            @PathVariable String id,
+            @Valid @RequestBody NoteUpdateRequest request) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+
+        DataRecord record = dataRecordRepository.findById(id).orElse(null);
+        if (record == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Security check: Employee can only update note of their assigned data records, Admin can update any
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
+        
+        if (!isAdmin) {
+            if (record.getAssignedTo() == null || !record.getAssignedTo().equals(userDetails.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new MessageResponse("Lỗi: Bạn không được phép cập nhật dữ liệu của nhân viên khác."));
+            }
+        }
+
+        record.setNote(request.getNote());
+        record.setUpdatedAt(Instant.now());
+        dataRecordRepository.save(record);
+
+        return ResponseEntity.ok(record);
+    }
+
     private ResponseEntity<?> importDataExcel(MultipartFile file) {
         try (org.apache.poi.ss.usermodel.Workbook workbook = org.apache.poi.ss.usermodel.WorkbookFactory.create(file.getInputStream())) {
             org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(0);
@@ -592,6 +638,7 @@ public class DataRecordController {
             int webIdx = getColumnIndex(headers, "Website", "website", "Trang web");
             int typeIdx = getColumnIndex(headers, "Loại hình", "Loai hinh", "Danh mục", "Danh muc", "Type", "businessType");
             int mapsIdx = getColumnIndex(headers, "Google Maps", "Google Map", "Maps", "googleMapUrl");
+            int noteIdx = getColumnIndex(headers, "Ghi chú", "Ghi chu", "Note", "note");
 
             boolean hasHeader = true;
             if (nameIdx == -1 || phoneIdx == -1 || addrIdx == -1 || areaIdx == -1) {
@@ -604,6 +651,7 @@ public class DataRecordController {
                     webIdx = headers.size() > 4 ? 4 : -1;
                     typeIdx = headers.size() > 5 ? 5 : -1;
                     mapsIdx = headers.size() > 6 ? 6 : -1;
+                    noteIdx = headers.size() > 7 ? 7 : -1;
                 } else {
                     return ResponseEntity.badRequest().body(Map.of("message", "File Excel không khớp các cột bắt buộc (Tên doanh nghiệp, Địa chỉ, Khu vực, Số điện thoại). Hãy tải file mẫu để kiểm tra."));
                 }
@@ -633,7 +681,7 @@ public class DataRecordController {
 
                 totalRows++;
 
-                int maxIdx = Math.max(Math.max(Math.max(nameIdx, phoneIdx), Math.max(addrIdx, areaIdx)), Math.max(Math.max(webIdx, typeIdx), mapsIdx));
+                int maxIdx = Math.max(Math.max(Math.max(nameIdx, phoneIdx), Math.max(addrIdx, areaIdx)), Math.max(Math.max(webIdx, typeIdx), Math.max(mapsIdx, noteIdx)));
                 if (columns.size() <= maxIdx) {
                     failedCount++;
                     errors.add(Map.of("row", rNum + 1, "message", "Dòng không đủ số cột dữ liệu"));
@@ -647,6 +695,7 @@ public class DataRecordController {
                 String website = webIdx != -1 ? columns.get(webIdx).trim() : "";
                 String businessType = typeIdx != -1 ? columns.get(typeIdx).trim() : "";
                 String googleMapUrl = mapsIdx != -1 ? columns.get(mapsIdx).trim() : "";
+                String note = noteIdx != -1 && columns.size() > noteIdx ? columns.get(noteIdx).trim() : "";
 
                 if (businessName.isEmpty()) {
                     failedCount++;
@@ -669,6 +718,7 @@ public class DataRecordController {
                     record.setWebsite(website);
                     record.setBusinessType(businessType);
                     record.setGoogleMapUrl(googleMapUrl);
+                    record.setNote(note);
                     record.setStatus("Chưa xử lý");
                     record.setAssignedTo(null);
                     record.setAssignedToName(null);
