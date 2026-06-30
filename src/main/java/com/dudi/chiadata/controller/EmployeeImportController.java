@@ -664,6 +664,13 @@ public class EmployeeImportController {
                     role = Role.ROLE_ADMIN;
                 }
 
+                java.util.Optional<EmployeeProfile> employeeProfileOpt = employeeProfileRepository.findByEmployeeId(username);
+                if (!employeeProfileOpt.isPresent()) {
+                    failedCount++;
+                    errors.add(Map.of("row", idx, "message", "Không thể import tài khoản do chưa có nhân viên có mã nv '" + username + "'"));
+                    continue;
+                }
+
                 try {
                     Instant accCreatedAt = Instant.now();
                     if (valNode.has("createdAt")) {
@@ -678,13 +685,14 @@ public class EmployeeImportController {
                     }
 
                     final Instant finalAccCreatedAt = accCreatedAt;
+                    EmployeeProfile profile = employeeProfileOpt.get();
                     User user = userRepository.findByUsername(username).orElseGet(() -> {
                         User u = new User();
                         u.setId(username);
                         u.setEmployeeId(username);
                         u.setUsername(username);
-                        u.setFullName(username);
-                        u.setEmail(username + "@dudi.vn");
+                        u.setFullName(profile.getName() != null && !profile.getName().isEmpty() ? profile.getName() : username);
+                        u.setEmail(profile.getEmail() != null && !profile.getEmail().isEmpty() ? profile.getEmail() : username + "@dudi.vn");
                         u.setCreatedAt(finalAccCreatedAt);
                         return u;
                     });
@@ -695,15 +703,6 @@ public class EmployeeImportController {
                     user.setUpdatedAt(Instant.now());
                     userRepository.save(user);
 
-                    EmployeeProfile profile = employeeProfileRepository.findByEmployeeId(username).orElseGet(() -> {
-                        EmployeeProfile p = new EmployeeProfile();
-                        p.setId(username);
-                        p.setEmployeeId(username);
-                        p.setName(username);
-                        p.setEmpName(username);
-                        p.setCreatedAt(user.getCreatedAt());
-                        return p;
-                    });
                     profile.setUpdatedAt(user.getUpdatedAt());
                     employeeProfileRepository.save(profile);
 

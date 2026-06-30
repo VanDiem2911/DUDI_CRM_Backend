@@ -1,4 +1,5 @@
 com\dudi\chiadata\security\UserDetailsServiceImpl.class
+com\dudi\chiadata\controller\EmployeeImportController$2.class
 com\dudi\chiadata\security\AuthEntryPointJwt.class
 com\dudi\chiadata\controller\DashboardController.class
 com\dudi\chiadata\security\WebSecurityConfig.class
@@ -12,13 +13,16 @@ com\dudi\chiadata\repository\EmployeeProfileRepository.class
 com\dudi\chiadata\repository\DataRecordRepository.class
 com\dudi\chiadata\security\JwtUtils.class
 com\dudi\chiadata\controller\DataRecordController$1.class
+com\dudi\chiadata\controller\EmployeeProfileController.class
 com\dudi\chiadata\model\User.class
 com\dudi\chiadata\controller\AuthController.class
 com\dudi\chiadata\config\DataInitializer.class
+com\dudi\chiadata\dto\ChangePasswordRequest.class
 com\dudi\chiadata\dto\AdminDashboardDto$EmployeeDataProgress.class
 com\dudi\chiadata\dto\AdminDashboardDto.class
 com\dudi\chiadata\ChiadataApplication.class
 com\dudi\chiadata\controller\UserController.class
+com\dudi\chiadata\controller\EmployeeImportController$3.class
 com\dudi\chiadata\dto\AssignRequest.class
 com\dudi\chiadata\controller\EmployeeImportController$1.class
 com\dudi\chiadata\security\AuthTokenFilter.class
